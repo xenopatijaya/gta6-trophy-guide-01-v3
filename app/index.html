@@ -1,147 +1,128 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leonida Atlas v3 — GTA VI Trophy Guide, Every Step Cited by Name</title>
-<meta name="description" content="Offline GTA VI trophy atlas v3: all 55 PS5 trophies with official descriptions in every row, a cited guide for every step with named sources, per-step checklists, PSN progress targets, a roadmap with cumulative hours, a session planner and a source matrix.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e2a30'/%3E%3Ctext x='32' y='45' font-size='34' font-family='Georgia,serif' font-weight='bold' text-anchor='middle' fill='%23f2b544'%3EA%3C/text%3E%3C/svg%3E">
+<title>Leonida Atlas v3 — GTA VI Trophy Guide &amp; Tracker</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="masthead">
+<header class="topbar">
   <div class="brand">
-    <div class="seal" aria-hidden="true">A</div>
+    <div class="brand-mark">LA</div>
     <div>
-      <h1>Leonida Atlas <span class="v3">v3</span></h1>
-      <p class="tagline">GTA VI &middot; PS5 trophy guide &amp; tracker &middot; every step cited by source name &middot; per-step checklists &middot; PSN targets</p>
+      <h1>Leonida Atlas <span class="vtag">v3</span></h1>
+      <p class="tagline">GTA VI trophy guide &amp; tracker — all 55 PS5 trophies, every claim cited.</p>
     </div>
   </div>
-  <div class="headline-progress" aria-live="polite">
-    <div class="hp-num"><span id="earnedCount">0</span><span class="hp-of"> / 55 earned</span></div>
-    <div class="hp-bar"><div class="hp-fill" id="progressFill"></div></div>
-    <div class="hp-grades" id="gradeBreakdown"></div>
+  <div class="top-actions">
+    <div class="progress-box">
+      <div class="progress-num"><span id="earnedCount">0</span><span class="dim"> / 55</span></div>
+      <div class="progress-bar"><div id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">0% to the platinum</div>
+    </div>
+    <label class="switch-row"><input type="checkbox" id="spoilerToggle"> Spoiler-safe mode</label>
+    <button id="exportBtn" type="button">Export progress</button>
+    <button id="importBtn" type="button">Import</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+    <button id="resetBtn" type="button" class="danger">Reset</button>
   </div>
 </header>
 
 <section class="audit" id="auditStrip" aria-label="Audit strip"></section>
 
-<nav class="tabs" id="tabBar" aria-label="Views">
-  <button type="button" data-view="ledger" class="active">Ledger / Checklist</button>
-  <button type="button" data-view="roadmap">Roadmap</button>
-  <button type="button" data-view="missables">Missables &amp; watch</button>
-  <button type="button" data-view="planner">Next up / Planner</button>
-  <button type="button" data-view="matrix">Source matrix</button>
-  <button type="button" data-view="sources">Sources</button>
+<nav class="tabs" id="viewTabs">
+  <button type="button" data-view="ledger" class="tab active">Ledger</button>
+  <button type="button" data-view="roadmap" class="tab">Roadmap — 6 stages</button>
+  <button type="button" data-view="missables" class="tab">Missables &amp; watch</button>
+  <button type="button" data-view="planner" class="tab">Session planner</button>
+  <button type="button" data-view="matrix" class="tab">Source matrix</button>
+  <button type="button" data-view="sources" class="tab">Sources</button>
 </nav>
 
-<section class="toolbar" id="toolbar">
-  <label class="search">Search
-    <input id="searchBox" type="search" placeholder="Name, description, guide text…" autocomplete="off">
-  </label>
-  <div class="chips" id="kindChips" role="group" aria-label="Filter by kind"></div>
-  <label>Grade
-    <select id="gradeSelect">
-      <option value="all">All grades</option>
-      <option value="platinum">Platinum</option>
-      <option value="gold">Gold</option>
-      <option value="silver">Silver</option>
-      <option value="bronze">Bronze</option>
-    </select>
-  </label>
-  <label>Stage
-    <select id="stageSelect">
-      <option value="all">All stages</option>
-      <option value="1">1 · Story</option>
-      <option value="2">2 · Side stories</option>
-      <option value="3">3 · Activities</option>
-      <option value="4">4 · Collectibles</option>
-      <option value="5">5 · Robberies</option>
-      <option value="6">6 · 100%</option>
-    </select>
-  </label>
-  <label class="check"><input id="earnedOnly" type="checkbox"> Earned only</label>
-  <label class="check"><input id="spoilerToggle" type="checkbox" checked> Spoiler-safe</label>
-  <div class="actions">
-    <button id="exportBtn" type="button">Export</button>
-    <button id="importBtn" type="button">Import</button>
-    <input id="importFile" type="file" accept="application/json,.json" hidden>
-    <button id="resetBtn" type="button" class="danger">Reset</button>
-  </div>
-</section>
-
-<main>
-  <section class="view" id="view-ledger">
-    <div class="columns">
-      <div class="listcol">
-        <p class="countline" id="countLine"></p>
-        <ul class="trophy-list" id="trophyList"></ul>
-      </div>
-      <article class="detail" id="detailPane" aria-live="polite"></article>
-      <aside class="rail" id="rightRail"></aside>
-    </div>
-  </section>
-
-  <section class="view" id="view-roadmap" hidden>
-    <div class="pagehead">
-      <h2>Roadmap to the platinum</h2>
-      <p id="roadmapIntro"></p>
-    </div>
-    <ol class="stages" id="stageList"></ol>
-  </section>
-
-  <section class="view" id="view-missables" hidden>
-    <div class="pagehead">
-      <h2>Missables &amp; watch list</h2>
-      <p>One trophy can be lost for a whole playthrough. Eight more are flagged WATCH — specific setups that are easy to fumble — and eight are UNCONFIRMED, where launch sources have not yet verified the trigger. Everything else can be cleaned up in free roam after the story.</p>
-    </div>
-    <div id="flagGroups"></div>
-  </section>
-
-  <section class="view" id="view-planner" hidden>
-    <div class="pagehead">
-      <h2>Next up / session planner</h2>
-      <p>Tell the planner how long you have. It spends the time on the earliest ungated trophies first — the possibly missable one outranks everything — and never schedules a trophy behind a stage you have not reached.</p>
-    </div>
-    <div class="planner-controls">
-      <label>Hours available this session
-        <select id="hoursSelect">
-          <option value="1">1 hour</option>
-          <option value="2" selected>2 hours</option>
-          <option value="4">4 hours</option>
-          <option value="6">6 hours</option>
-          <option value="10">10 hours</option>
+<div class="layout">
+  <main class="content">
+    <section id="view-ledger" class="view">
+      <div id="detailPanel" class="detail" hidden></div>
+      <div class="filters">
+        <input type="search" id="searchInput" placeholder="Search trophies, descriptions, guides…">
+        <select id="kindFilter"><option value="">All kinds</option></select>
+        <select id="gradeFilter">
+          <option value="">All grades</option>
+          <option value="platinum">Platinum</option>
+          <option value="gold">Gold</option>
+          <option value="silver">Silver</option>
+          <option value="bronze">Bronze</option>
         </select>
-      </label>
-      <p class="plan-summary" id="planSummary"></p>
-    </div>
-    <ol class="plan" id="planList"></ol>
-    <h3 class="subhead">Earliest ungated — the full Next Up queue</h3>
-    <ol class="plan queue" id="queueList"></ol>
-  </section>
+        <select id="stageFilter"><option value="">All stages</option></select>
+        <select id="statusFilter">
+          <option value="">Any status</option>
+          <option value="open">Not earned</option>
+          <option value="earned">Earned</option>
+        </select>
+      </div>
+      <div id="ledgerMeta" class="ledger-meta"></div>
+      <div id="ledgerList" class="ledger"></div>
+    </section>
 
-  <section class="view" id="view-matrix" hidden>
-    <div class="pagehead">
-      <h2>Source matrix</h2>
-      <p>Which source backs which trophy. A filled cell means the trophy's guide cites that source; the row total is the number of independent sources behind that guide. Every one of the 55 guides cites at least two.</p>
-    </div>
-    <div class="matrix-wrap"><table class="matrix" id="matrixTable"></table></div>
-  </section>
+    <section id="view-roadmap" class="view" hidden>
+      <div id="roadmapRoot"></div>
+    </section>
 
-  <section class="view" id="view-sources" hidden>
-    <div class="pagehead">
+    <section id="view-missables" class="view" hidden>
+      <p class="view-intro">Every trophy carrying a flag — the one possibly missable trophy first, then the watch list, then the entries the guides have not fully confirmed. Official descriptions shown in full; spoiler-safe mode does not hide this view, because these are the trophies you plan around.</p>
+      <div id="missablesRoot" class="card-grid"></div>
+    </section>
+
+    <section id="view-planner" class="view" hidden>
+      <div class="planner-controls">
+        <label for="sessionHours">Session length (hours)</label>
+        <input type="number" id="sessionHours" min="1" max="40" step="1" value="6">
+        <div class="preset-row">
+          <button type="button" class="preset" data-hours="2">2h</button>
+          <button type="button" class="preset" data-hours="4">4h</button>
+          <button type="button" class="preset" data-hours="6">6h</button>
+          <button type="button" class="preset" data-hours="10">10h</button>
+          <button type="button" class="preset" data-hours="20">20h</button>
+        </div>
+        <button type="button" id="planBtn" class="primary">Build my session</button>
+      </div>
+      <div id="plannerRoot"></div>
+    </section>
+
+    <section id="view-matrix" class="view" hidden>
+      <p class="view-intro">Citation matrix — every trophy against the ten numbered sources. A filled cell means the trophy's guide or steps cite that source.</p>
+      <div class="matrix-wrap"><table id="matrixTable" class="matrix"></table></div>
+    </section>
+
+    <section id="view-sources" class="view" hidden>
+      <div id="sourcesRoot"></div>
+    </section>
+  </main>
+
+  <aside class="rail">
+    <section class="rail-card">
+      <h2>Next up</h2>
+      <ol id="nextUpList" class="next-up"></ol>
+    </section>
+    <section class="rail-card">
+      <h2>Time to platinum</h2>
+      <div class="ttp-num"><span id="hoursLeft">±200</span><span class="dim"> hours left</span></div>
+      <p class="rail-note" id="ttpNote">Estimated from the per-trophy hours in this atlas. The full run is rated 4/10 difficulty at about 200 hours, one playthrough, no online or difficulty trophies.</p>
+    </section>
+    <section class="rail-card">
       <h2>Sources</h2>
-      <p id="sourcesIntro"></p>
-    </div>
-    <ol class="sources" id="sourceList"></ol>
-    <div class="disagree-box" id="disagreeBox"></div>
-  </section>
-</main>
+      <ol id="railSources" class="rail-sources"></ol>
+    </section>
+  </aside>
+</div>
 
 <footer class="foot">
-  <p>Progress, counters, per-step checklists and notes save in this browser (localStorage) and leave it only through Export. The app loads nothing over the network and works fully offline. No Rockstar Games logo, artwork or game screenshots are used; the look is this atlas's own.</p>
-  <p class="muted" id="footSources"></p>
+  <p>Leonida Atlas v3 — a fan-made tracker. Trophy names and descriptions are the official PSN wording; guides are original to this atlas and cite the numbered sources above. No artwork or logos from the game are used. Progress is stored only in your browser.</p>
 </footer>
-<script type="module" src="js/app.js"></script>
+
+<script src="js/store.js"></script>
+<script src="js/planner.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

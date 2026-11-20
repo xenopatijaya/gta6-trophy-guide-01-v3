@@ -1,76 +1,98 @@
-// Leonida Atlas v3 — progress store.
-// Everything the tracker remembers lives in one localStorage record:
-// earned trophy ids, per-trophy counters, per-step checklists
-// (stepsDone: trophy id -> array of finished step indexes), and the
-// spoiler-safe switch. Export downloads that record as JSON; import
-// reads it back. v2 records import cleanly (stepsDone defaults empty).
+/* Leonida Atlas v3 — progress store.
+   State lives in localStorage only: earned flags, per-step checks,
+   counter values, free-text notes and the spoiler-safe preference. */
+(function () {
+  var KEY = "leonida-atlas-v3-progress";
 
-const STORAGE_KEY = 'leonida-atlas-v3-progress';
-
-export function emptyState() {
-  return { earned: [], counters: {}, stepsDone: {}, spoilerSafe: true };
-}
-
-function cleanStepsDone(raw) {
-  if (!raw || typeof raw !== 'object') return {};
-  const out = {};
-  for (const [key, value] of Object.entries(raw)) {
-    if (Array.isArray(value)) out[key] = value.filter((n) => Number.isInteger(n) && n >= 0);
-  }
-  return out;
-}
-
-export function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyState();
-    const parsed = JSON.parse(raw);
+  function blankState() {
     return {
-      earned: Array.isArray(parsed.earned) ? parsed.earned : [],
-      counters: parsed.counters && typeof parsed.counters === 'object' ? parsed.counters : {},
-      stepsDone: cleanStepsDone(parsed.stepsDone),
-      spoilerSafe: parsed.spoilerSafe !== false,
+      earned: {},
+      steps: {},
+      counters: {},
+      notes: {},
+      spoilerSafe: false
     };
-  } catch {
-    return emptyState();
   }
-}
 
-export function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
+  function loadState() {
+    try {
+      var raw = window.localStorage.getItem(KEY);
+      if (!raw) return blankState();
+      var parsed = JSON.parse(raw);
+      var state = blankState();
+      if (parsed && typeof parsed === "object") {
+        if (parsed.earned) state.earned = parsed.earned;
+        if (parsed.steps) state.steps = parsed.steps;
+        if (parsed.counters) state.counters = parsed.counters;
+        if (parsed.notes) state.notes = parsed.notes;
+        state.spoilerSafe = parsed.spoilerSafe === true;
+      }
+      return state;
+    } catch (err) {
+      return blankState();
+    }
+  }
 
-export function demoState() {
-  // A seeded mid-run save, used by ?seed=demo for previews and screenshots:
-  // 13 of 55 earned (Chapter 1 story beats among them, so spoiler-safe mode
-  // has earned story names to reveal), counters part-way on the big grinds,
-  // and per-step checklists part-way: Positive Mental Attitude (id 28) has
-  // its first two steps ticked — the Chapter 1 balcony meditation is done,
-  // the rest of the 18 are still open.
-  return {
-    earned: [2, 3, 8, 9, 10, 11, 12, 13, 20, 21, 29, 33, 41],
-    counters: { 15: 47, 19: 4, 28: 3, 30: 1, 31: 22, 32: 11, 35: 38 },
-    stepsDone: { 28: [0, 1], 15: [0], 31: [0, 1], 2: [0, 1], 3: [0, 1, 2] },
-    spoilerSafe: true,
+  function saveState(state) {
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (err) {
+      /* storage full or blocked: the session keeps working in memory */
+    }
+  }
+
+  function clearState() {
+    try {
+      window.localStorage.removeItem(KEY);
+    } catch (err) { /* nothing to clear */ }
+    return blankState();
+  }
+
+  /* Demo state used by the ?seed=demo screenshots: a Chapter 2 player
+     who finished the opening, sampled an arcade game, beat Cal, and has
+     started the meditation route at 3 of 18 with the balcony step done. */
+  function demoState() {
+    var state = blankState();
+    state.earned = {
+      "just-like-paradise": true,
+      "paradise-lost": true,
+      "trust": true,
+      "stick-fiddler": true,
+      "baited-my-tackle": true
+    };
+    state.steps = {
+      "positive-mental-attitude": [true, true, false, false, false],
+      "a-long-road": [true, false, false, false, false],
+      "cunning-stunts": [true, true, false, false, false]
+    };
+    state.counters = {
+      "positive-mental-attitude": 3,
+      "cunning-stunts": 41,
+      "whip-it-good": 27,
+      "you-wainker": 12
+    };
+    state.notes = {
+      "positive-mental-attitude": "Balcony meditation done in Chapter 1. Next spots on the way to Vice City."
+    };
+    return state;
+  }
+
+  function stepsDoneFor(state, trophy) {
+    var marks = state.steps[trophy.id] || [];
+    var done = 0;
+    for (var i = 0; i < trophy.steps.length; i++) {
+      if (marks[i]) done++;
+    }
+    return done;
+  }
+
+  window.AtlasStore = {
+    KEY: KEY,
+    blankState: blankState,
+    loadState: loadState,
+    saveState: saveState,
+    clearState: clearState,
+    demoState: demoState,
+    stepsDoneFor: stepsDoneFor
   };
-}
-
-export function exportState(state) {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'leonida-atlas-v3-progress.json';
-  link.click();
-  URL.revokeObjectURL(link.href);
-}
-
-export function parseImported(text) {
-  const parsed = JSON.parse(text);
-  if (!parsed || !Array.isArray(parsed.earned)) throw new Error('not an atlas progress file');
-  return {
-    earned: parsed.earned.filter((n) => Number.isInteger(n)),
-    counters: parsed.counters && typeof parsed.counters === 'object' ? parsed.counters : {},
-    stepsDone: cleanStepsDone(parsed.stepsDone),
-    spoilerSafe: parsed.spoilerSafe !== false,
-  };
-}
+})();

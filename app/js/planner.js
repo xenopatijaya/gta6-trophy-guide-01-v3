@@ -1,58 +1,79 @@
-// Leonida Atlas v3 — Next Up queue and session planner.
-// The queue is deterministic: the possibly missable trophy first, then
-// unearned trophies in roadmap-stage order, then by list order. A trophy
-// is "gated" when an earlier stage still has unearned trophies, so the
-// queue is also the earliest-ungated list the right rail shows.
+/* Leonida Atlas v3 — queue and session planner.
+   The Next Up queue walks the roadmap in stage order and, inside a
+   stage, shortest trophies first, so early wins land early. The
+   platinum itself is held back until everything else is earned. */
+(function () {
+  function isEarned(state, trophy) {
+    return state.earned[trophy.id] === true;
+  }
 
-export function nextUpQueue(trophies, earnedIds) {
-  const earned = new Set(earnedIds);
-  const remaining = trophies.filter((t) => !earned.has(t.id) && t.grade !== 'platinum');
-  const missable = remaining.filter((t) => t.flag === 'missable');
-  const rest = remaining.filter((t) => t.flag !== 'missable');
-  rest.sort((a, b) => a.stage - b.stage || a.id - b.id);
-  const lowestStage = rest.length ? rest[0].stage : null;
-  return [...missable, ...rest].map((t) => ({
-    trophy: t,
-    gated: t.flag !== 'missable' && lowestStage !== null && t.stage > lowestStage,
-  }));
-}
+  function queueOrder(a, b) {
+    if (a.stage !== b.stage) return a.stage - b.stage;
+    if (a.hours !== b.hours) return a.hours - b.hours;
+    return a.name < b.name ? -1 : 1;
+  }
 
-export function sessionPlan(queue, hoursAvailable) {
-  // Fill the session greedily in queue order. The first pick is always
-  // included even if it alone overruns the budget (starting the missable
-  // or the current stage beats an empty plan); later picks must fit the
-  // time left, and smaller trophies may fill the tail.
-  const picks = [];
-  let used = 0;
-  for (const item of queue) {
-    if (item.gated && picks.length > 0) continue;
-    const cost = Math.max(0.5, item.trophy.hours || 1);
-    if (picks.length === 0 || used + cost <= hoursAvailable) {
-      picks.push(item);
-      used += cost;
+  function nextUp(data, state, limit) {
+    var open = data.trophies.filter(function (t) {
+      return !isEarned(state, t) && t.kind !== "platinum";
+    });
+    open.sort(queueOrder);
+    var platinum = data.trophies.filter(function (t) {
+      return t.kind === "platinum" && !isEarned(state, t);
+    });
+    var rest = open.concat(platinum);
+    return typeof limit === "number" ? rest.slice(0, limit) : rest;
+  }
+
+  function hoursLeft(data, state) {
+    var total = 0;
+    data.trophies.forEach(function (t) {
+      if (!isEarned(state, t)) total += t.hours;
+    });
+    return total;
+  }
+
+  /* Greedy session plan: fill the requested hours from the front of
+     the Next Up queue. A trophy longer than the whole session still
+     leads the plan, flagged as a focus block, because starting the
+     long checklist work early beats deferring it forever. */
+  function buildPlan(data, state, sessionHours) {
+    var queue = nextUp(data, state);
+    var picked = [];
+    var used = 0;
+    for (var i = 0; i < queue.length; i++) {
+      var t = queue[i];
+      if (picked.length === 0 && t.hours > sessionHours) {
+        picked.push({ trophy: t, focusBlock: true });
+        used = sessionHours;
+        break;
+      }
+      if (used + t.hours <= sessionHours) {
+        picked.push({ trophy: t, focusBlock: false });
+        used += t.hours;
+      }
+      if (used >= sessionHours) break;
     }
-    if (used >= hoursAvailable) break;
+    return {
+      items: picked,
+      plannedHours: used,
+      sessionHours: sessionHours,
+      slack: Math.max(0, sessionHours - used),
+      remainingAfter: hoursLeft(data, state) - used
+    };
   }
-  return { picks, used };
-}
 
-export function platinumEta(stages, trophies, earnedIds) {
-  // Remaining hours: each stage's estimate scaled by the share of its
-  // trophies still unearned, summed across stages.
-  const earned = new Set(earnedIds);
-  let total = 0;
-  for (const stage of stages) {
-    const inStage = trophies.filter((t) => t.stage === stage.n);
-    if (!inStage.length) continue;
-    const left = inStage.filter((t) => !earned.has(t.id)).length;
-    total += stage.hours * (left / inStage.length);
+  function stageProgress(data, state, stageId) {
+    var inStage = data.trophies.filter(function (t) { return t.stage === stageId; });
+    var done = inStage.filter(function (t) { return isEarned(state, t); }).length;
+    return { done: done, total: inStage.length, trophies: inStage };
   }
-  return Math.round(total);
-}
 
-export function cumulativeHours(stages) {
-  // Running total of stage hours: [45, 70, 125, 165, 185, 200] for the
-  // six Leonida stages — shown on every roadmap card in v3.
-  let run = 0;
-  return stages.map((s) => (run += s.hours));
-}
+  window.AtlasPlanner = {
+    isEarned: isEarned,
+    nextUp: nextUp,
+    hoursLeft: hoursLeft,
+    buildPlan: buildPlan,
+    stageProgress: stageProgress
+  };
+})();
